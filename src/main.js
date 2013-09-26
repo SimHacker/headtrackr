@@ -125,6 +125,7 @@ headtrackr.Tracker = function(params) {
 				} else {
 				  video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
 				}
+                video.stream = stream;
 				video.play();
 			}, function() {
 				headtrackerStatus("no camera");
