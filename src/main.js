@@ -53,7 +53,7 @@ headtrackr.Tracker = function(params) {
 	if (params.cameraOffset === undefined) params.cameraOffset = 11.5;
 	if (params.calcAngles === undefined) params.calcAngles = false;
 	if (params.headPosition === undefined) params.headPosition = true;
-	
+
 	var ui, smoother, facetracker, headposition, canvasContext, videoElement, detector;
 	var detectionTimer;
 	var fov = 0;
@@ -95,48 +95,54 @@ headtrackr.Tracker = function(params) {
 		}
 	}
 	
-	this.init = function(video, canvas) {
-		navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-		window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
-		// check for camerasupport
-		if (navigator.getUserMedia) {
-			headtrackerStatus("getUserMedia");
-			
-			// chrome 19 shim
-			var videoSelector = {video : true};
-			if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
-				var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
-				if (chromeVersion < 20) {
-					videoSelector = "video";
-				}
-			};
-			
-			// opera shim
-			if (window.opera) {
-				window.URL = window.URL || {};
-				if (!window.URL.createObjectURL) window.URL.createObjectURL = function(obj) {return obj;};
-			}
-			
-			// set up stream
-			navigator.getUserMedia(videoSelector, function( stream ) {
-				headtrackerStatus("camera found");
-				if (video.mozCaptureStream) {
-				  video.mozSrcObject = stream;
-				} else {
-				  video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
-				}
-                video.stream = stream;
-				video.play();
-			}, function() {
-				headtrackerStatus("no camera");
-				insertAltVideo(video);
-			});
-		} else {
-			headtrackerStatus("no getUserMedia");
-			if (!insertAltVideo(video)) {
-				return false;
-			}
-		}
+	this.init = function(video, canvas, doNotGetUserMedia) {
+        if (!doNotGetUserMedia) {
+            navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+            window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
+            // check for camerasupport
+            if (navigator.getUserMedia && !) {
+                headtrackerStatus("getUserMedia");
+
+                // chrome 19 shim
+                var videoSelector = {video : true};
+                if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
+                    var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
+                    if (chromeVersion < 20) {
+                        videoSelector = "video";
+                    }
+                };
+
+                // opera shim
+                if (window.opera) {
+                    window.URL = window.URL || {};
+                    if (!window.URL.createObjectURL) window.URL.createObjectURL = function(obj) {return obj;};
+                }
+
+                this.stream = null;
+
+                navigator.getUserMedia(videoSelector, function( stream ) {
+
+                    headtrackerStatus("camera found");
+
+                    if (video.mozCaptureStream) {
+                      video.mozSrcObject = stream;
+                    } else {
+                      video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+                    }
+
+                    video.play();
+                }, function() {
+                    headtrackerStatus("no camera");
+                    insertAltVideo(video);
+                });
+
+            } else {
+                headtrackerStatus("no getUserMedia");
+                if (!insertAltVideo(video)) {
+                    return false;
+                }
+            }
+        }
 		
 		videoElement = video;
 		canvasElement = canvas;
@@ -214,7 +220,7 @@ headtrackr.Tracker = function(params) {
 					debugContext.rotate((Math.PI/2)-faceObj.angle);
 					debugContext.translate(-faceObj.x, -faceObj.y);
 				}
-				
+
 				// fade out video if it's showing
 				if (!videoFaded && params.fadeVideo) {
 					fadeVideo();
